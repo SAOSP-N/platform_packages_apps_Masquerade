@@ -20,7 +20,6 @@
 
 package masquerade.substratum.services;
 
-import android.app.ActivityManager;
 import android.app.ActivityManagerNative;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -57,11 +56,12 @@ import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.android.internal.statusbar.IStatusBarService;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -685,21 +685,9 @@ public class JobService extends Service {
     @SuppressWarnings({"unchecked", "ConfusingArgumentToVarargsMethod"})
     private void restartUi() {
         try {
-            ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-            Class ActivityManagerNative = Class.forName("android.app.ActivityManagerNative");
-            Method getDefault = ActivityManagerNative.getDeclaredMethod("getDefault", null);
-            Object amn = getDefault.invoke(null, null);
-            Method killApplicationProcess = amn.getClass().getDeclaredMethod
-                    ("killApplicationProcess", String.class, int.class);
-            stopService(new Intent().setComponent(new ComponentName("com.android.systemui", "com" +
-                    ".android.systemui.SystemUIService")));
-            am.killBackgroundProcesses("com.android.systemui");
-            for (ActivityManager.RunningAppProcessInfo app : am.getRunningAppProcesses()) {
-                if ("com.android.systemui".equals(app.processName)) {
-                    killApplicationProcess.invoke(amn, app.processName, app.uid);
-                    break;
-                }
-            }
+            IStatusBarService sb = IStatusBarService.Stub.asInterface(
+                    ServiceManager.getService("statusbar"));
+            sb.restartUI();
         } catch (Exception e) {
             e.printStackTrace();
         }
